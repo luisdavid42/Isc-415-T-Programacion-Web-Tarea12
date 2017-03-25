@@ -21,7 +21,7 @@
           <div id="mybutton">
             <input type="text" class="form-control awesomplete" id="name" placeholder="Movie Name" oninput="getSuggestions()">
             <br>
-            <button id="submit" type="submit">Search</button>
+            <button id="submit" type="submit">Search</button> 
         </form>
         <br>
         <div id="resultsQuantity">
@@ -47,8 +47,9 @@
     var currentPage=0;
     var results=0;
     var pages=0;
+    var api_key= "492c7fa7d569781eb1e66f5aaa4a834f";
     var get = function (movieName,pageNum) {
-      var api_key= "492c7fa7d569781eb1e66f5aaa4a834f";
+      
       var url = "https://api.themoviedb.org/3/search/movie" + "?api_key=" + api_key + "&query=" + movieName + "&page=" + pageNum;
       var xhr = new XMLHttpRequest();
       currentPage=pageNum;
@@ -138,12 +139,56 @@
     };
 
     function getSuggestions(){
+      var list = [];
+      var timeout = null;
       var input = document.getElementById("name");
-      if(String.length(input.value)>=2){
-        new Awesomplete(input, {
-	    list: ["Ada", "Java", "JavaScript", "Brainfuck", "LOLCODE", "Node.js", "Ruby on Rails"]
-      });
+      var movieName = input.value;
+      //alert(movieName);
+
+      if(timeout){
+        clearTimeout(timeout);
       }
+      if(name.length>=2){
+        timeout = setTimeout(get, 2000, name);
+      }
+
+      Array.prototype.contains = function ( value ) {
+        for (i in this) {
+            if (this[i] == value) 
+              return true;
+        }
+        return false;
+      }
+
+      
+      var url = "https://api.themoviedb.org/3/search/movie" + "?api_key=" + api_key + "&query=" + movieName + "&page=" + "1";
+      var xhr = new XMLHttpRequest();
+      xhr.onreadystatechange = function () {
+        if (this.readyState == 4 && this.status == 200) {
+        console.log(this.responseText);
+        showResults(JSON.parse(this.responseText));
+        }
+      };
+      xhr.open("GET", url);
+      xhr.send();
+      function showResults(response) {
+        for(var idx=0; idx<response.results.length; idx++){
+            list.push(response.results[idx].original_title);
+        }
+        //alert(response);
+      }
+      
+
+
+
+      
+
+      list.push('lew');
+      list.push('lew2');
+      list.push('lew3');
+
+      new Awesomplete(input, {list});
+      input.focus();
       
     }
 
