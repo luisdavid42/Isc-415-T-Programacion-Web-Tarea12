@@ -48,4 +48,4 @@ def handle_fomdata():
             db.session.add(nmovie)
             db.session.commit()
      
-        return render_template('review.html')
+        return "success"

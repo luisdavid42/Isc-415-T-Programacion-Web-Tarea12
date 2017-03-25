@@ -4,7 +4,7 @@
       <!-- Latest compiled and minified CSS -->
       <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u"
           crossorigin="anonymous">
-      <link rel="stylesheet" href="awesomplete.css" />
+      <link rel="stylesheet" href="../static/awesomplete.css" />
 
       <style>
           .main {
@@ -42,116 +42,19 @@
     </div>
   </body>
 
+  <script src="../static/awesomplete.js" async></script>
   <script>
     var currentName="";
     var currentPage=0;
     var results=0;
     var pages=0;
     var api_key= "492c7fa7d569781eb1e66f5aaa4a834f";
-    var get = function (movieName,pageNum) {
-      
-      var url = "https://api.themoviedb.org/3/search/movie" + "?api_key=" + api_key + "&query=" + movieName + "&page=" + pageNum;
-      var xhr = new XMLHttpRequest();
-      currentPage=pageNum;
-      xhr.onreadystatechange = function () {
-        if (this.readyState == 4 && this.status == 200) {
-        console.log(this.responseText);
-        showResults(JSON.parse(this.responseText));
-        }
-      };
-      xhr.open("GET", url);
-      xhr.send();
-      function showResults(response) {
-        results = response.total_results;
-        pages = response.total_pages;
-        var resultsElement = document.getElementById('resultsQuantity');
-        var pagesElement = document.getElementById('pagesQuantity');
-        resultsElement.innerHTML = "Results: " + results;
-        pagesElement.innerHTML = "Pages: " + pages;
-        var currentPageElement = document.getElementById('pageTb');
-        currentPageElement.innerHTML = "Page " + currentPage + " / " + pages;
-        // Get the container
-        var container = document.getElementById('content');
-        // Create list element
-        var list = document.createElement('ul');
-        list.id = 'movies';
-        list.classList.add('list-group');
-        // Iterate over results
-        for(var idx=0; idx<response.results.length; idx++){
-          //Agregando el Poster
-          var poster = document.createElement('img');
-          if(response.results[idx].poster_path==null){
-            poster.src="http://itorrent.us/images/movie-poster.jpg"
-            poster.width = "185";
-          }
-          else{
-            poster.src = "http://image.tmdb.org/t/p/w185//" + response.results[idx].poster_path;
-          }
-          list.appendChild(poster);
-          //agregando boton
-          var btnAgregar = document.createElement('button');
-          btnAgregar.innerHTML = "Agregar";
-          //falta que realmente agregue la pelicula
-
-          list.appendChild(btnAgregar)
-          //Agregando el Titulo
-          var title = document.createElement('li');
-          title.innerHTML = 'Title: ' + response.results[idx].original_title;
-          list.appendChild(title);
-          //Agregando la fecha de lanzamiento
-          var releaseDate = document.createElement('li');
-          releaseDate.innerHTML = 'Release Date: ' + response.results[idx].release_date;
-          list.appendChild(releaseDate);
-          
-          //Agregando Los Votos
-          var voteAvg = document.createElement('li');
-          voteAvg.innerHTML = 'Vote Avg: ' + response.results[idx].vote_average;
-          list.appendChild(voteAvg);
-        }
-        // Add list to container
-        container.appendChild(list);
-      }
-      //validate page limits
-        var backBtn = document.getElementById('backBtn');
-        var nextBtn = document.getElementById('nextBtn');
-        if(currentPage==1)
-          backBtn.disabled = true;
-        else
-          backBtn.disabled = false;
-          if(currentPage===pages)
-          nextBtn.disabled = true;
-        else
-          nextBtn.disabled = false;
-    }
+    var movieName;
+    var timeout = null;
+    var list = [];
     var form = document.getElementById('movieForm');
-    form.onsubmit = function(evt) {
-        evt.preventDefault();
-        if(pages>0)
-          reset();
-        var name = document.getElementById('name');
-        // Get data
-        
-        currentName = name.value;
-        currentPage = 1;
-        get(currentName, currentPage);
-        // Reset form
-        name.value = '';
-    };
 
-    function getSuggestions(){
-      var list = [];
-      var timeout = null;
-      var input = document.getElementById("name");
-      var movieName = input.value;
-
-      if(timeout){
-        clearTimeout(timeout);
-      }
-      if(movieName.length>=2){
-        timeout = setTimeout(getSuggestionsLocalDb, 2000);
-      }
-
-      Array.prototype.contains = function ( value ) {
+    Array.prototype.contains = function ( value ) {
         for (i in this) {
             if (this[i] == value) 
               return true;
@@ -159,26 +62,49 @@
         return false;
       }
 
+    function getSuggestions(){
+      
+      var input = document.getElementById("name");
+      movieName = input.value;
+
+      if(timeout){
+        clearTimeout(timeout);
+      }
+      if(movieName.length>=2){
+        timeout = setTimeout(getSuggestionsLocalDb, 1000);
+      }
+    }
+      
+
       function getSuggestionsLocalDb(){
         var url = "http://localhost:5000/movies/search?name=" + movieName;
         var xhr = new XMLHttpRequest();
        
         xhr.onreadystatechange = function () {
+
+
+          //si no encuentra la pelicula en la base de datos local, la busca en movieDB
         if (this.readyState == 4 && this.status == 200) {
             showResults(JSON.parse(this.responseText));
-             alert("vamo a buca en el server");
         }
         else if (this.readyState == 4 && this.status == 404){
             getSuggestionsServerDb();
            
-        }
-      };
+          }
+        };
 
-      function showResults(response) {
-        for(var idx=0; idx<response.results.length; idx++){
-            list.push(response.results[idx].original_title);
+        xhr.open("GET", url, true);
+        xhr.send();
+
+        function showResults(response) {
+          if(list.contains(response.name)){
+          }
+          else 
+            list.push(response.name);
+          var input = document.getElementById("name");
+          new Awesomplete(input, {list});
+          document.getElementById("name").focus();
         }
-      }
       }
 
       function getSuggestionsServerDb(){
@@ -189,6 +115,8 @@
           console.log(this.responseText);
           showResults(JSON.parse(this.responseText));
           }
+          else if(this.readyState == 4 && this.status == 404){
+          }
         };
 
         xhr.open("GET", url);
@@ -197,39 +125,49 @@
 
         function showResults(response) {
         for(var idx=0; idx<response.results.length; idx++){
+            if(list.contains(response.results[idx].original_title)){
+              
+            }
+          else {
             list.push(response.results[idx].original_title);
+            insertarLocalDb(response.results[idx])
+            
         }
       }
+      var input = document.getElementById("name");
+        new Awesomplete(input, {list});
+        document.getElementById("name").focus();
       }
-
-      new Awesomplete(input, {list});
-      input.focus();
     }
 
+    function insertarLocalDb(element){
+    var xhr = new XMLHttpRequest();
+    var url = "http://localhost:5000/movies/";
+      xhr.onreadystatechange = function () {
+                if (this.readyState == 4 && this.status == 200) {
+                    successFunction(JSON.parse(this.responseText));
+                }
+                else if (this.readyState == 4 && this.status == 404){
+                    errorFunction();
+                }
+            };
+      xhr.open("post", url, true);
+      var form = new FormData();
+      form.append("name", element.title);
+      form.append("desc", element.overview);
+      poster = "http://image.tmdb.org/t/p/w185" + element.poster_path;
+      form.append("poster", poster);
+      xhr.send(form);
+      function successFunction(response){
+        document.getElementById("name").focus();
+      }
+      function errorFunction(){
+        document.getElementById("name").focus();
+      }
+  }
 
-    function goBack(){
-      console.log("echando pa tra");
-    
-    document.getElementById('content').innerHTML = "";
-    get(currentName, currentPage - 1);
-
-    }
-    function goNext(){
-    console.log("echando pa lante");
-    
-    document.getElementById('content').innerHTML = "";
-    get(currentName, currentPage + 1);
-    }
-    function reset(){
-      document.getElementById('content').innerHTML = "";
-      currentName = "";
-      currentPage = 0;
-      results = 0;
-      pages = 0;
-      
-    }
 
     
   </script>
-  <script src="awesomplete.js" async></script>
+  
 </html>
