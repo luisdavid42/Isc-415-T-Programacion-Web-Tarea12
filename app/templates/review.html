@@ -143,13 +143,12 @@
       var timeout = null;
       var input = document.getElementById("name");
       var movieName = input.value;
-      //alert(movieName);
 
       if(timeout){
         clearTimeout(timeout);
       }
-      if(name.length>=2){
-        timeout = setTimeout(get, 2000, name);
+      if(movieName.length>=2){
+        timeout = setTimeout(getSuggestionsLocalDb, 2000);
       }
 
       Array.prototype.contains = function ( value ) {
@@ -160,36 +159,51 @@
         return false;
       }
 
-      
-      var url = "https://api.themoviedb.org/3/search/movie" + "?api_key=" + api_key + "&query=" + movieName + "&page=" + "1";
-      var xhr = new XMLHttpRequest();
-      xhr.onreadystatechange = function () {
+      function getSuggestionsLocalDb(){
+        var url = "http://localhost:5000/movies/search?name=" + movieName;
+        var xhr = new XMLHttpRequest();
+       
+        xhr.onreadystatechange = function () {
         if (this.readyState == 4 && this.status == 200) {
-        console.log(this.responseText);
-        showResults(JSON.parse(this.responseText));
+            showResults(JSON.parse(this.responseText));
+             alert("vamo a buca en el server");
+        }
+        else if (this.readyState == 4 && this.status == 404){
+            getSuggestionsServerDb();
+           
         }
       };
-      xhr.open("GET", url);
-      xhr.send();
+
       function showResults(response) {
         for(var idx=0; idx<response.results.length; idx++){
             list.push(response.results[idx].original_title);
         }
-        //alert(response);
       }
-      
+      }
 
+      function getSuggestionsServerDb(){
+        var url = "https://api.themoviedb.org/3/search/movie" + "?api_key=" + api_key + "&query=" + movieName + "&page=" + "1";
+        var xhr = new XMLHttpRequest();
+        xhr.onreadystatechange = function () {
+          if (this.readyState == 4 && this.status == 200) {
+          console.log(this.responseText);
+          showResults(JSON.parse(this.responseText));
+          }
+        };
 
+        xhr.open("GET", url);
+        xhr.send();
+        
 
-      
-
-      list.push('lew');
-      list.push('lew2');
-      list.push('lew3');
+        function showResults(response) {
+        for(var idx=0; idx<response.results.length; idx++){
+            list.push(response.results[idx].original_title);
+        }
+      }
+      }
 
       new Awesomplete(input, {list});
       input.focus();
-      
     }
 
 
